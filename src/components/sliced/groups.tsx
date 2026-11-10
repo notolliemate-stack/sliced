@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Plus, ArrowUpRight, LockKeyhole, Users, Link2, Check, Settings2, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useSliced, readImage, type Group, type Person } from '@/lib/sliced-data';
 import { Avatar, AvatarStack, MemberModal, Modal, PrivateLabel } from './shared';
@@ -15,6 +16,83 @@ export function InviteModal({group,onClose}: {group:Group;onClose:()=>void}) {
   return <Modal open onClose={onClose} title="Good food is better together" description={`Invite a friend to ${group.name}.`}><div className="space-y-5"><div className="flex justify-center"><AvatarStack ids={group.members} limit={7}/></div><p className="text-center text-sm text-muted-foreground">Send this private invitation to someone you’d love to share a meal with.</p><div className="field"><label htmlFor="invite-link">Your invitation link</label><input id="invite-link" readOnly value={link} onFocus={e=>e.target.select()}/></div><Button className="primary-button w-full" onClick={async()=>{try{await navigator.clipboard.writeText(link);setCopied(true);toast.success('Invitation link copied');}catch{toast.info('Select the invitation link above to copy it.');}}}>{copied?<Check size={16}/>:<Link2 size={16}/>} {copied?'Link copied':'Copy invitation link'}</Button><div className="rounded-xl bg-secondary p-4 text-xs leading-relaxed text-muted-foreground"><LockKeyhole size={14} className="mb-2"/>Prototype note: invitations work with groups stored on this device. Sharing private groups across devices will require the future authentication and database integration.</div></div></Modal>;
 }
 export function GroupsPage() {
-  const {state,setState,group}=useSliced();const [form,setForm]=useState<Group|'new'|null>(null);const [invite,setInvite]=useState<Group|null>(null);const [person,setPerson]=useState<Person|null>(null);
-  return <div className="space-y-7"><div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-[30px] font-bold tracking-tight">Your people. Your tables.</h1><p className="mt-2 text-sm text-muted-foreground">Little circles of friends, connected by something homemade.</p></div><Button className="primary-button h-11" onClick={()=>setForm('new')}><Plus size={17}/>Create a group</Button></div><div className="grid gap-5 md:grid-cols-2">{state.groups.filter(g=>g.members.includes('you')).map(g=><article className="panel overflow-hidden" key={g.id}><div className="relative"><img src={g.image} alt={g.name} className="h-48 w-full object-cover"/><span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-lg bg-white/95 px-2.5 py-1.5 text-xs font-medium"><LockKeyhole size={12}/>Private group</span></div><div className="p-5"><div className="flex items-center justify-between"><h2 className="section-heading">{g.name}</h2>{g.id===group.id&&<span className="rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-primary">Active table</span>}</div><p className="mb-5 mt-2 text-sm leading-relaxed text-muted-foreground">{g.description}</p><div className="mb-5 flex items-center justify-between"><AvatarStack ids={g.members}/><span className="text-xs text-muted-foreground">{g.members.length} members</span></div><div className="flex gap-2 border-t pt-4"><Button variant="outline" className="subtle-button flex-1 text-xs" onClick={()=>{setState(s=>({...s,groupId:g.id}));toast.success(`You’re at ${g.name}`);}}>View group<ArrowUpRight size={14}/></Button><Button variant="outline" className="subtle-button text-xs" onClick={()=>setInvite(g)}><Link2 size={14}/>Invite</Button></div></div></article>)}</div><div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]"><section className="panel p-6"><div className="mb-5 flex items-center justify-between"><h2 className="section-heading">Around {group.name}</h2><span className="text-xs text-muted-foreground">{group.members.length} members</span></div><div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{group.members.map(id=>{const p=state.people.find(p=>p.id===id)!;return <button className="flex items-center gap-3 rounded-xl p-2 text-left hover:bg-secondary" key={id} onClick={()=>setPerson(p)}><Avatar person={p} size={40}/><div><p className="text-xs font-semibold">{id==='you'?'You':p.name.split(' ')[0]}</p><p className="mt-1 text-[10px] text-muted-foreground">{p.dietary[0]||'Food lover'}</p></div></button>;})}</div></section><section className="panel p-6"><div className="mb-4 flex items-center justify-between"><h2 className="section-heading">Our house rules</h2><button className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" aria-label="Edit group rules" onClick={()=>setForm(group)}><Settings2 size={17}/></button></div><p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{group.rules}</p><div className="mt-5 border-t pt-4"><PrivateLabel/></div></section></div>{form&&<GroupForm initial={form==='new'?undefined:form} onClose={()=>setForm(null)}/>} {invite&&<InviteModal group={invite} onClose={()=>setInvite(null)}/>}<MemberModal person={person} onClose={()=>setPerson(null)}/></div>;
+  const {state,setState,group}=useSliced();
+  const [form,setForm]=useState<Group|'new'|null>(null);
+  const [invite,setInvite]=useState<Group|null>(null);
+  const [person,setPerson]=useState<Person|null>(null);
+
+  return <div className="space-y-6">
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="text-[30px] font-bold tracking-tight">Your people. Your table.</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Choose a group to manage its details, members and house rules.</p>
+      </div>
+      <Button className="primary-button h-11" onClick={()=>setForm('new')}><Plus size={17}/>Create a group</Button>
+    </div>
+
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-white p-4 sm:p-5">
+      <div className="w-full sm:w-80">
+        <label id="manage-group-label" className="mb-2 block text-xs font-semibold text-muted-foreground">Group to manage</label>
+        <Select value={group.id} onValueChange={groupId=>{
+          setForm(null);
+          setInvite(null);
+          setPerson(null);
+          setState(s=>({...s,groupId}));
+        }}>
+          <SelectTrigger aria-labelledby="manage-group-label" className="h-11 rounded-xl border-border bg-secondary/50 px-3.5 text-sm font-semibold shadow-none">
+            <span className="flex items-center gap-2"><Users size={16} className="text-primary"/><SelectValue/></span>
+          </SelectTrigger>
+          <SelectContent className="rounded-xl border-border p-1.5">
+            {state.groups.filter(g=>g.members.includes('you')).map(g=><SelectItem key={g.id} value={g.id} className="rounded-lg py-2.5 text-sm focus:bg-accent focus:text-primary">{g.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <PrivateLabel/>
+    </div>
+
+    <article className="panel overflow-hidden">
+      <img src={group.image} alt={group.name} className="h-44 w-full object-cover sm:h-56"/>
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold tracking-tight">{group.name}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{group.description}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="subtle-button text-xs" onClick={()=>setForm(group)}><Settings2 size={14}/>Edit group</Button>
+            <Button className="primary-button text-xs" onClick={()=>setInvite(group)}><Link2 size={14}/>Invite a friend</Button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+      <section className="panel p-6">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="section-heading">Group members</h2>
+          <span className="shrink-0 text-xs text-muted-foreground">{group.members.length} members</span>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          {group.members.map(id=>{
+            const p=state.people.find(p=>p.id===id)!;
+            return <button className="flex items-center gap-3 rounded-xl p-2 text-left hover:bg-secondary" key={id} onClick={()=>setPerson(p)}>
+              <Avatar person={p} size={40}/>
+              <div><p className="text-xs font-semibold">{id==='you'?'You':p.name.split(' ')[0]}</p><p className="mt-1 text-[10px] text-muted-foreground">{p.dietary[0]||'Food lover'}</p></div>
+            </button>;
+          })}
+        </div>
+      </section>
+      <section className="panel p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="section-heading">Our house rules</h2>
+          <button className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" aria-label={`Edit ${group.name} rules`} onClick={()=>setForm(group)}><Settings2 size={17}/></button>
+        </div>
+        <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{group.rules}</p>
+        <div className="mt-5 border-t pt-4"><PrivateLabel/></div>
+      </section>
+    </div>
+    {form&&<GroupForm key={form==='new'?'new':form.id} initial={form==='new'?undefined:form} onClose={()=>setForm(null)}/>}
+    {invite&&<InviteModal group={invite} onClose={()=>setInvite(null)}/>}
+    <MemberModal person={person} onClose={()=>setPerson(null)}/>
+  </div>;
 }
