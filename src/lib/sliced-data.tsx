@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { createDefaultAvatar } from './default-avatar';
+import { createDefaultUsername } from './default-username';
 
 export type Person = { id: string; name: string; avatar: string; dietary: string[]; allergies: string; email?: string };
 export type Group = { id: string; name: string; description: string; image: string; members: string[]; rules: string; token: string };
@@ -21,7 +22,7 @@ function seed(): State {
   return {
     signedIn: false, groupId: 'supper',
     people: [
-      {id:'you',name:'Alex Morgan',avatar:createDefaultAvatar(),dietary:[],allergies:'',email:'alex@example.com'},
+      {id:'you',name:createDefaultUsername(),avatar:createDefaultAvatar(),dietary:[],allergies:'',email:'alex@example.com'},
       {id:'emma',name:'Emma Wilson',avatar:createDefaultAvatar(),dietary:['Vegetarian'],allergies:'Peanuts'},
       {id:'james',name:'James Chen',avatar:createDefaultAvatar(),dietary:[],allergies:''},
       {id:'sophie',name:'Sophie Patel',avatar:createDefaultAvatar(),dietary:['Vegan'],allergies:'Dairy'},
@@ -49,9 +50,11 @@ function load(): State {
     const stored = localStorage.getItem('sliced-demo-v1');
     if(stored) {
       const state: State = JSON.parse(stored);
-      state.people = state.people.map(person => !person.avatar || /^https:\/\/i\.pravatar\.cc\/100\?img=\d+$/.test(person.avatar)
-        ? {...person, avatar: createDefaultAvatar()}
-        : person);
+      state.people = state.people.map(person => ({
+        ...person,
+        name: person.id==='you' && (!person.name || person.name==='Alex Morgan') ? createDefaultUsername() : person.name,
+        avatar: !person.avatar || /^https:\/\/i\.pravatar\.cc\/100\?img=\d+$/.test(person.avatar) ? createDefaultAvatar() : person.avatar,
+      }));
       return state;
     }
   } catch { /* Use sample data when storage is unavailable. */ }

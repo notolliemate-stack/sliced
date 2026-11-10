@@ -6,7 +6,8 @@ test('Default profile icon keeps its color and can be replaced by an uploaded ph
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Explore demo', exact: true }).click();
 
-  const profileImage = page.getByRole('main').getByRole('img', { name: 'Alex Morgan', exact: true }).first();
+  const username = await page.getByLabel('Username', { exact: true }).inputValue();
+  const profileImage = page.getByRole('main').getByRole('img', { name: username, exact: true }).first();
   await expect(profileImage).toHaveAttribute('src', /^data:image\/svg\+xml/);
   const defaultSource = (await profileImage.getAttribute('src'))!;
   const svg = decodeURIComponent(defaultSource.slice(defaultSource.indexOf(',') + 1));
