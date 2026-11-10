@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
+import { createDefaultAvatar } from './default-avatar';
 
 export type Person = { id: string; name: string; avatar: string; dietary: string[]; allergies: string; email?: string };
 export type Group = { id: string; name: string; description: string; image: string; members: string[]; rules: string; token: string };
@@ -15,19 +16,18 @@ export const today = () => dateKey(new Date());
 export const isUpcoming = (m: Meal) => new Date(`${m.date}T${m.time}`) >= new Date();
 export const available = (meal: Meal) => meal.portions - Object.values(meal.reservations).reduce((a,b) => a+b,0);
 export const timeLabel = (time: string) => new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-const avatar = (id: number) => `https://i.pravatar.cc/100?img=${id}`;
 function seed(): State {
   const day = (n: number) => dateKey(addDays(new Date(),n));
   return {
     signedIn: false, groupId: 'supper',
     people: [
-      {id:'you',name:'Alex Morgan',avatar:avatar(12),dietary:[],allergies:'',email:'alex@example.com'},
-      {id:'emma',name:'Emma Wilson',avatar:avatar(47),dietary:['Vegetarian'],allergies:'Peanuts'},
-      {id:'james',name:'James Chen',avatar:avatar(11),dietary:[],allergies:''},
-      {id:'sophie',name:'Sophie Patel',avatar:avatar(44),dietary:['Vegan'],allergies:'Dairy'},
-      {id:'oliver',name:'Oliver Brooks',avatar:avatar(13),dietary:[],allergies:''},
-      {id:'mia',name:'Mia Thompson',avatar:avatar(49),dietary:['Gluten-free'],allergies:'Gluten'},
-      {id:'dan',name:'Daniel Rivera',avatar:avatar(15),dietary:[],allergies:''},
+      {id:'you',name:'Alex Morgan',avatar:createDefaultAvatar(),dietary:[],allergies:'',email:'alex@example.com'},
+      {id:'emma',name:'Emma Wilson',avatar:createDefaultAvatar(),dietary:['Vegetarian'],allergies:'Peanuts'},
+      {id:'james',name:'James Chen',avatar:createDefaultAvatar(),dietary:[],allergies:''},
+      {id:'sophie',name:'Sophie Patel',avatar:createDefaultAvatar(),dietary:['Vegan'],allergies:'Dairy'},
+      {id:'oliver',name:'Oliver Brooks',avatar:createDefaultAvatar(),dietary:[],allergies:''},
+      {id:'mia',name:'Mia Thompson',avatar:createDefaultAvatar(),dietary:['Gluten-free'],allergies:'Gluten'},
+      {id:'dan',name:'Daniel Rivera',avatar:createDefaultAvatar(),dietary:[],allergies:''},
     ],
     groups: [
       {id:'supper',name:'The Supper Club',description:'Good friends, home-cooked meals, and one less thing to think about. Our little neighborhood table.',image:'/images/friends.png',members:['you','emma','james','sophie','oliver','mia','dan'],rules:'Cook when you can. Reserve by noon on the day of the meal. Bring your own container, and always list allergens. No one keeps score — just share the love.',token:'supper-club-demo'},
@@ -45,7 +45,16 @@ function seed(): State {
   };
 }
 function load(): State {
-  try { const stored = localStorage.getItem('sliced-demo-v1'); if(stored) return JSON.parse(stored); } catch { /* Use sample data when storage is unavailable. */ }
+  try {
+    const stored = localStorage.getItem('sliced-demo-v1');
+    if(stored) {
+      const state: State = JSON.parse(stored);
+      state.people = state.people.map(person => !person.avatar || /^https:\/\/i\.pravatar\.cc\/100\?img=\d+$/.test(person.avatar)
+        ? {...person, avatar: createDefaultAvatar()}
+        : person);
+      return state;
+    }
+  } catch { /* Use sample data when storage is unavailable. */ }
   return seed();
 }
 type Store = { state: State; setState: React.Dispatch<React.SetStateAction<State>>; me: Person; group: Group; notify: (text: string, mealId?: string) => void; reserve: (id: string, portions: number) => void; cancelReservation: (id: string) => void; };
