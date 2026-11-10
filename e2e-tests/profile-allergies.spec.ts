@@ -4,6 +4,7 @@ test('Save multiple profile allergies and a custom Other allergy', async ({ page
   await page.goto('/profile');
   await page.evaluate(() => localStorage.removeItem('sliced-demo-v1'));
   await page.reload();
+  await page.getByRole('button', { name: 'Explore demo', exact: true }).click();
 
   const picker = page.getByRole('button', { name: 'Choose allergies', exact: true });
   const otherInput = page.getByRole('textbox', { name: 'Other allergy or food restriction', exact: true });

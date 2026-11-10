@@ -19,7 +19,7 @@ const avatar = (id: number) => `https://i.pravatar.cc/100?img=${id}`;
 function seed(): State {
   const day = (n: number) => dateKey(addDays(new Date(),n));
   return {
-    signedIn: true, groupId: 'supper',
+    signedIn: false, groupId: 'supper',
     people: [
       {id:'you',name:'Alex Morgan',avatar:avatar(12),dietary:[],allergies:'',email:'alex@example.com'},
       {id:'emma',name:'Emma Wilson',avatar:avatar(47),dietary:['Vegetarian'],allergies:'Peanuts'},

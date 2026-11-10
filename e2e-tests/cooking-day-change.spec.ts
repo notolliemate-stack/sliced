@@ -1,9 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+// Leave time for repeated navigation when the Tests panel uses slow-motion playback.
+test.describe.configure({ timeout: 60_000 });
+// Surface the stalled action instead of exhausting the entire test timeout.
+test.use({ actionTimeout: 10_000, navigationTimeout: 15_000 });
+
 async function openNextWeek(page: import('@playwright/test').Page) {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => localStorage.removeItem('sliced-demo-v1'));
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'There’s a place for you.', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Explore demo', exact: true }).click();
+  await page.getByRole('link', { name: 'Home', exact: true }).click();
+  await page.getByRole('heading', { name: 'A peek at your week', exact: true }).scrollIntoViewIfNeeded();
   const dates = await page.evaluate(() => {
     const monday = new Date();
     monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + 7);
@@ -32,7 +41,7 @@ test('Moving a cooking day clears the original day, including existing duplicate
     state.commitments.push({ ...claim, id: 'duplicate-claim-regression' });
     localStorage.setItem(key, JSON.stringify(state));
   }, from);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Next week', exact: true }).click();
   await originalDay.getByRole('button', { name: /Your cooking day/ }).first().click();
   const dialog = page.getByRole('dialog', { name: 'Your day in the kitchen', exact: true });
@@ -42,7 +51,7 @@ test('Moving a cooking day clears the original day, including existing duplicate
   await expect(originalDay.getByText('Your cooking day', { exact: true })).toHaveCount(0);
   await expect(originalDay.getByRole('button', { name: 'Who’s cooking?', exact: true })).toBeVisible();
   await expect(newDay.getByText('Your cooking day', { exact: true })).toHaveCount(1);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Next week', exact: true }).click();
   await expect(originalDay.getByRole('button', { name: 'Who’s cooking?', exact: true })).toBeVisible();
   await expect(newDay.getByText('Your cooking day', { exact: true })).toHaveCount(1);

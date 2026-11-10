@@ -5,6 +5,7 @@ test('Reserve a friend’s meal, retain it after reload, and release the portion
   await page.goto('/');
   await page.evaluate(() => localStorage.removeItem('sliced-demo-v1'));
   await page.reload();
+  await page.getByRole('button', { name: 'Explore demo', exact: true }).click();
   await page.getByRole('link', { name: 'Meals', exact: true }).click();
   await expect(page).toHaveURL(/\/meals$/);
 
